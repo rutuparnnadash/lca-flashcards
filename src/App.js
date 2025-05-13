@@ -1,24 +1,58 @@
-import React, { useState } from "react";
-import flashcardSets from "./flashcardsDataWithCategories";
+import React, { useEffect, useState } from "react";
+import Papa from "papaparse";
 
-const categories = Object.keys(flashcardSets);
+const csvSources = {
+  lca: "/LCA_Flashcard_Questions.csv",
+  food: "/food_sustainability_quiz_questions.csv",
+};
 
 export default function LCAFlashcards() {
-  const [category, setCategory] = useState(categories[0]);
+  const [flashcards, setFlashcards] = useState({});
+  const [category, setCategory] = useState("lca");
   const [index, setIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
 
-  const flashcards = flashcardSets[category];
-  const current = flashcards[index];
+  useEffect(() => {
+    const loadAllCSV = async () => {
+      const newData = {};
+
+      for (const key of Object.keys(csvSources)) {
+        await new Promise((resolve) => {
+          Papa.parse(csvSources[key], {
+            download: true,
+            header: true,
+            complete: (results) => {
+              const cleaned = results.data
+                .filter(row => row.question && row.options && row.answer)
+                .map(row => ({
+                  question: row.question,
+                  options: JSON.parse(row.options.replace(/'/g, '"')),
+                  answer: row.answer
+                }));
+              newData[key] = cleaned;
+              resolve();
+            }
+          });
+        });
+      }
+
+      setFlashcards(newData);
+    };
+
+    loadAllCSV();
+  }, []);
+
+  const flashcardList = flashcards[category] || [];
+  const current = flashcardList[index] || {};
 
   const nextCard = () => {
     setShowAnswer(false);
-    setIndex((index + 1) % flashcards.length);
+    setIndex((index + 1) % flashcardList.length);
   };
 
   const prevCard = () => {
     setShowAnswer(false);
-    setIndex((index - 1 + flashcards.length) % flashcards.length);
+    setIndex((index - 1 + flashcardList.length) % flashcardList.length);
   };
 
   const changeCategory = (cat) => {
@@ -27,12 +61,14 @@ export default function LCAFlashcards() {
     setShowAnswer(false);
   };
 
+  if (!flashcardList.length) return <p style={{ textAlign: "center" }}>Loading flashcards...</p>;
+
   return (
     <div style={{ backgroundColor: "#FFFBF0", minHeight: "100vh", padding: "2rem", color: "#407F46", textAlign: "center" }}>
       <h1 style={{ marginBottom: "1rem" }}>Flashcards</h1>
 
       <div style={{ marginBottom: "1rem" }}>
-        {categories.map((cat) => (
+        {Object.keys(csvSources).map((cat) => (
           <button
             key={cat}
             onClick={() => changeCategory(cat)}
@@ -78,7 +114,7 @@ export default function LCAFlashcards() {
       </div>
 
       <p style={{ marginTop: "1rem", fontSize: "0.9rem" }}>
-        Card {index + 1} of {flashcards.length} in "{category}"
+        Card {index + 1} of {flashcardList.length} in "{category.toUpperCase()}"
       </p>
     </div>
   );
