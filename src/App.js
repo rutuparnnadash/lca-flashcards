@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
 
+// Map category keys to file paths
 const csvSources = {
   lca: "/LCA_Flashcard_Questions.csv",
   food: "/food_sustainability_quiz_questions.csv",
+  phone: "/phone_tablet_sustainability_questions.csv"
 };
 
 export default function LCAFlashcards() {
